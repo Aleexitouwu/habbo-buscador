@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Buscador Habbo.es</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-page: #f5f0e8;
+      --bg-card: #ffffff;
+      --bg-metric: #faf8f3;
+      --bg-room: #faf8f3;
+      --bg-tag-offline: #f2f2f2;
+      --bg-count: #f2f2f2;
+      --color-text: #1a1a1a;
+      --color-muted: #666;
+      --color-faint: #999;
+      --color-border: #e8e0d0;
+      --color-divider: #f0ece4;
+      --color-tab-border: #eee;
+      --color-friend-sep: #f5f0e8;
+      --color-badge-border: #eee;
+      --color-tag-offline-border: #ddd;
+      --color-count-border: #ddd;
+      --color-input-bg: #ffffff;
+      --color-input-border: #ddd;
+      --color-link: #1a5fb4;
+      --color-room-badge-bg: #e8f0fb;
+      --color-room-badge-text: #1a5fb4;
+    }
+    body.dark {
+      --bg-page: #0f0f0f;
+      --bg-card: #1c1c1c;
+      --bg-metric: #252525;
+      --bg-room: #252525;
+      --bg-tag-offline: #2a2a2a;
+      --bg-count: #2a2a2a;
+      --color-text: #f0f0f0;
+      --color-muted: #aaa;
+      --color-faint: #777;
+      --color-border: #2e2e2e;
+      --color-divider: #2a2a2a;
+      --color-tab-border: #2e2e2e;
+      --color-friend-sep: #252525;
+      --color-badge-border: #333;
+      --color-tag-offline-border: #3a3a3a;
+      --color-count-border: #3a3a3a;
+      --color-input-bg: #1c1c1c;
+      --color-input-border: #3a3a3a;
+      --color-link: #6fa8f5;
+      --color-room-badge-bg: #1a2a40;
+      --color-room-badge-text: #6fa8f5;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-page);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 2rem 1rem;
+      color: var(--color-text);
+      transition: background 0.25s, color 0.25s;
+    }
+    .container { width: 100%; max-width: 640px; }
+
+    .header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+    .header-icon { width: 42px; height: 42px; background: #C5A028; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .header-text { flex: 1; }
+    .header h1 { font-size: 20px; font-weight: 600; }
+    .header p { font-size: 13px; color: var(--color-muted); }
+    .theme-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--color-input-border); background: var(--bg-card); color: var(--color-text); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; transition: background 0.2s; }
+    .theme-btn:hover { background: var(--bg-metric); }
+
+    .search-row { display: flex; gap: 8px; margin-bottom: 1.5rem; }
+    .search-row input { flex: 1; padding: 10px 14px; font-size: 14px; border: 1px solid var(--color-input-border); border-radius: 8px; background: var(--color-input-bg); color: var(--color-text); outline: none; transition: border-color 0.2s, background 0.25s; }
+    .search-row input::placeholder { color: var(--color-faint); }
+    .search-row input:focus { border-color: #C5A028; }
+    .search-row button { padding: 10px 20px; font-size: 14px; font-weight: 500; background: #C5A028; color: #fff; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+    .search-row button:hover { background: #a8871f; }
+
+    .proxy-indicator { font-size: 11px; color: var(--color-faint); text-align: right; margin-bottom: 6px; }
+
+    .card { background: var(--bg-card); border: 1px solid var(--color-border); border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem; transition: background 0.25s, border-color 0.25s; }
+
+    .user-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 1rem; }
+    .avatar-img { width: 64px; height: 96px; image-rendering: pixelated; flex-shrink: 0; }
+    .user-meta { flex: 1; min-width: 0; }
+    .user-meta h3 { font-size: 18px; font-weight: 600; margin-bottom: 3px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .tag { font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 500; }
+    .tag-online { background: #e6f4ea; color: #2d7a3a; }
+    .tag-offline { background: var(--bg-tag-offline); color: var(--color-muted); border: 1px solid var(--color-tag-offline-border); }
+    .tag-staff { background: #fef3cd; color: #8a6400; }
+
+    .divider { border: none; border-top: 1px solid var(--color-divider); margin: 1rem 0; }
+
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
+    .metric { background: var(--bg-metric); border-radius: 8px; padding: 0.75rem; transition: background 0.25s; }
+    .metric-label { font-size: 11px; color: var(--color-faint); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .metric-value { font-size: 15px; font-weight: 600; }
+
+    .section-title { font-size: 11px; font-weight: 600; color: var(--color-faint); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .badges-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .badge-img { width: 40px; height: 40px; border-radius: 4px; border: 1px solid var(--color-badge-border); }
+
+    /* ── Motto con historial desplegable ── */
+    .motto-wrap { margin: 2px 0 4px; }
+    .motto-current {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 13px; color: var(--color-muted); font-style: italic;
+      cursor: pointer; user-select: none; padding: 2px 0;
+    }
+    .motto-current:hover { color: var(--color-text); }
+    .motto-arrow { font-style: normal; font-size: 9px; transition: transform 0.2s; display: inline-block; opacity: 0.6; }
+    .motto-arrow.open { transform: rotate(180deg); }
+    .motto-history { display: none; margin-top: 6px; background: var(--bg-metric); border-radius: 8px; border: 1px solid var(--color-border); overflow: hidden; }
+    .motto-history.open { display: block; }
+    .motto-history-item { padding: 7px 10px; border-bottom: 1px solid var(--color-divider); }
+    .motto-history-item:last-child { border-bottom: none; }
+    .motto-history-text { font-size: 13px; font-style: italic; color: var(--color-muted); }
+    .motto-history-date { font-size: 11px; color: var(--color-faint); margin-top: 2px; }
+    .motto-empty { padding: 8px 10px; font-size: 12px; color: var(--color-faint); font-style: italic; }
+
+    /* ── Nombre con historial desplegable ── */
+    .name-wrap { margin-bottom: 2px; }
+    .name-current {
+      display: inline-flex; align-items: center; gap: 5px;
+      cursor: pointer; user-select: none;
+    }
+    .name-current h3 { font-size: 18px; font-weight: 600; }
+    .name-current:hover h3 { opacity: 0.8; }
+    .name-arrow { font-size: 9px; opacity: 0.4; transition: transform 0.2s; display: inline-block; margin-top: 2px; }
+    .name-arrow.open { transform: rotate(180deg); }
+    .name-history { display: none; margin-top: 5px; background: var(--bg-metric); border-radius: 8px; border: 1px solid var(--color-border); overflow: hidden; }
+    .name-history.open { display: block; }
+    .name-history-item { padding: 7px 10px; border-bottom: 1px solid var(--color-divider); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .name-history-item:last-child { border-bottom: none; }
+    .name-history-text { font-size: 13px; font-weight: 500; color: var(--color-text); }
+    .name-history-date { font-size: 11px; color: var(--color-faint); flex-shrink: 0; }
+    .name-current-badge { font-size: 10px; padding: 1px 7px; border-radius: 999px; background: #e6f4ea; color: #2d7a3a; font-weight: 500; margin-left: 4px; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: 0; margin-bottom: 1rem; border-bottom: 1px solid var(--color-tab-border); overflow-x: auto; }
+    .tab { padding: 8px 14px; font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; color: var(--color-faint); background: none; border-top: none; border-left: none; border-right: none; transition: color 0.15s; white-space: nowrap; }
+    .tab.active { color: var(--color-text); border-bottom-color: #C5A028; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Rooms ── */
+    .room-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--bg-room); border-radius: 8px; margin-bottom: 6px; transition: background 0.25s; }
+    .room-name { font-size: 13px; font-weight: 500; }
+    .room-desc { font-size: 12px; color: var(--color-muted); margin-top: 2px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .room-badge { font-size: 11px; padding: 2px 9px; border-radius: 999px; background: var(--color-room-badge-bg); color: var(--color-room-badge-text); flex-shrink: 0; font-weight: 500; }
+
+    /* ── Friends ── */
+    .friend-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--color-friend-sep); }
+    .friend-item:last-child { border-bottom: none; }
+    .friend-avatar { width: 40px; height: 56px; image-rendering: pixelated; flex-shrink: 0; }
+    .friend-name { font-size: 13px; font-weight: 500; }
+    .friend-motto { font-size: 12px; color: var(--color-muted); font-style: italic; }
+    .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; }
+    .dot-online { background: #2d7a3a; }
+    .dot-offline { background: #bbb; }
+    .friend-status { font-size: 11px; flex-shrink: 0; font-weight: 500; }
+    .friend-status.online { color: #2d7a3a; }
+    .friend-status.offline { color: var(--color-faint); }
+
+    /* ── Previous looks ── */
+    .look-item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--color-divider); }
+    .look-item:last-child { border-bottom: none; }
+    .look-avatar { width: 40px; height: 60px; image-rendering: pixelated; flex-shrink: 0; }
+    .look-info { flex: 1; }
+    .look-label { font-size: 13px; font-weight: 500; color: var(--color-text); display: flex; align-items: center; gap: 6px; }
+    .look-date { font-size: 11px; color: var(--color-faint); margin-top: 2px; }
+    .look-current-badge { font-size: 10px; padding: 1px 7px; border-radius: 999px; background: #e6f4ea; color: #2d7a3a; font-weight: 500; }
+
+    .count-badge { font-size: 11px; background: var(--bg-count); border: 1px solid var(--color-count-border); border-radius: 999px; padding: 1px 7px; margin-left: 5px; color: var(--color-faint); }
+
+    .profile-link { font-size: 13px; color: var(--color-link); text-decoration: none; }
+    .profile-link:hover { text-decoration: underline; }
+
+    .error-box { background: #fdf0f0; border: 1px solid #f5c0c0; border-radius: 10px; padding: 1rem; color: #b00020; font-size: 14px; line-height: 1.6; }
+    body.dark .error-box { background: #2a1010; border-color: #5a2020; color: #f08080; }
+    .loading { text-align: center; padding: 2rem; color: var(--color-faint); font-size: 14px; }
+    .empty-state { text-align: center; padding: 1.5rem; color: var(--color-faint); font-size: 14px; }
+    .more-note { font-size: 12px; color: var(--color-faint); margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-icon">
+      <svg width="22" height="22" viewBox="0 0 20 20" fill="none">
+        <rect x="3" y="3" width="14" height="14" rx="2" fill="white" opacity="0.9"/>
+        <rect x="7" y="8" width="6" height="6" rx="1" fill="#C5A028"/>
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>Buscador Habbo.es</h1>
+      <p>Busca usuarios en el Hotel Español</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
+  </div>
+
+  <div class="search-row">
+    <input type="text" id="usernameInput" placeholder="Nombre de usuario..." />
+    <button onclick="searchUser()">Buscar</button>
+  </div>
+
+  <div id="proxy-status"></div>
+  <div id="result"></div>
+</div>
+
+<script>
+// ── Proxies ──────────────────────────────────────────────
+const PROXIES = [
+  { name: "corsproxy.io",     fn: url => `https://corsproxy.io/?${encodeURIComponent(url)}` },
+  { name: "allorigins.win",   fn: url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}` },
+  { name: "corsproxy.org",    fn: url => `https://corsproxy.org/?${encodeURIComponent(url)}` },
+  { name: "api.codetabs.com", fn: url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}` },
+  { name: "thingproxy",       fn: url => `https://thingproxy.freeboard.io/fetch/${url}` },
+  { name: "jsonp.afeld.me",   fn: url => `https://jsonp.afeld.me/?url=${encodeURIComponent(url)}` },
+];
+let activeProxy = null;
+
+async function fetchWithProxy(path) {
+  const targetUrl = `https://www.habbo.es/api/public/${path}`;
+  const errors = [];
+  for (const proxy of PROXIES) {
+    try {
+      const res = await fetch(proxy.fn(targetUrl), { signal: AbortSignal.timeout(7000) });
+      if (!res.ok) { errors.push(`${proxy.name}: HTTP ${res.status}`); continue; }
+      const raw = await res.json();
+      let data;
+      if (raw && raw.contents !== undefined) {
+        data = JSON.parse(raw.contents);
+      } else if (raw && raw.status && raw.contents !== undefined) {
+        data = JSON.parse(raw.contents);
+      } else {
+        data = raw;
+      }
+      if (data && typeof data === 'object') {
+        activeProxy = proxy.name;
+        return data;
+      }
+      errors.push(`${proxy.name}: respuesta inválida`);
+    } catch (e) {
+      errors.push(`${proxy.name}: ${e.message}`);
+      continue;
+    }
+  }
+  throw new Error('PROXY_FAIL:' + errors.join(' | '));
+}
+
+// ── Hora argentina ────────────────────────────────────────
+function fmtAR(iso) {
+  return new Date(iso).toLocaleString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+// ── LocalStorage ─────────────────────────────────────────
+function getHistory(uid) {
+  try { return JSON.parse(localStorage.getItem('habbo_h_' + uid) || '{"looks":[],"mottos":[]}'); }
+  catch { return { looks: [], mottos: [] }; }
+}
+function saveHistory(uid, h) {
+  localStorage.setItem('habbo_h_' + uid, JSON.stringify(h));
+}
+
+function recordSnapshot(uid, figureString, motto, name) {
+  const h = getHistory(uid);
+  const now = new Date().toISOString();
+
+  if (!h.looks.length || h.looks[0].figure !== figureString) {
+    h.looks.unshift({ figure: figureString, date: now });
+    if (h.looks.length > 30) h.looks = h.looks.slice(0, 30);
+  }
+
+  const cleanMotto = motto || '';
+  if (!h.mottos.length || h.mottos[0].text !== cleanMotto) {
+    h.mottos.unshift({ text: cleanMotto, date: now });
+    if (h.mottos.length > 50) h.mottos = h.mottos.slice(0, 50);
+  }
+
+  if (!h.names) h.names = [];
+  const cleanName = name || '';
+  if (!h.names.length || h.names[0].text !== cleanName) {
+    h.names.unshift({ text: cleanName, date: now });
+    if (h.names.length > 30) h.names = h.names.slice(0, 30);
+  }
+
+  saveHistory(uid, h);
+  return h;
+}
+
+// ── Motto desplegable ─────────────────────────────────────
+function renderMotto(currentMotto, mottoHistory) {
+  const prev = mottoHistory.slice(1);
+  const historyHtml = prev.length === 0
+    ? `<div class="motto-empty">Buscá al usuario varias veces para ver el historial de misiones.</div>`
+    : prev.map(m => `
+        <div class="motto-history-item">
+          <div class="motto-history-text">"${m.text || '(sin misión)'}"</div>
+          <div class="motto-history-date">${fmtAR(m.date)}</div>
+        </div>`).join('');
+
+  return `
+    <div class="motto-wrap">
+      <div class="motto-current" onclick="toggleMotto(this)">
+        <span>"${currentMotto || 'Sin misión'}"</span>
+        <span class="motto-arrow">▼</span>
+      </div>
+      <div class="motto-history">${historyHtml}</div>
+    </div>`;
+}
+
+function toggleMotto(el) {
+  el.querySelector('.motto-arrow').classList.toggle('open');
+  el.nextElementSibling.classList.toggle('open');
+}
+
+// ── Nombre desplegable ────────────────────────────────────
+function renderName(currentName, nameHistory) {
+  const prev = (nameHistory || []).slice(1);
+  const historyHtml = prev.length === 0
+    ? `<div class="motto-empty">Buscá al usuario varias veces para ver si cambió de nombre.</div>`
+    : prev.map(n => `
+        <div class="name-history-item">
+          <span class="name-history-text">${n.text}</span>
+          <span class="name-history-date">${fmtAR(n.date)}</span>
+        </div>`).join('');
+
+  return `
+    <div class="name-wrap">
+      <div class="name-current" onclick="toggleName(this)">
+        <h3>${currentName}</h3>
+        <span class="name-arrow">▼</span>
+      </div>
+      <div class="name-history">${historyHtml}</div>
+    </div>`;
+}
+
+function toggleName(el) {
+  el.querySelector('.name-arrow').classList.toggle('open');
+  el.nextElementSibling.classList.toggle('open');
+}
+
+// ── Previous looks ────────────────────────────────────────
+function renderLooks(looks) {
+  if (!looks.length) {
+    return `<div class="empty-state">Buscá al usuario varias veces para acumular historial de looks.</div>`;
+  }
+  return looks.map((l, i) => {
+    const fig = `https://www.habbo.es/habbo-imaging/avatarimage?figure=${l.figure}&direction=2&head_direction=3&size=s&gesture=nor`;
+    return `
+      <div class="look-item">
+        <img class="look-avatar" src="${fig}" alt="look" onerror="this.style.opacity=0.2" />
+        <div class="look-info">
+          <div class="look-label">
+            ${i === 0 ? 'Look actual' : 'Look anterior'}
+            ${i === 0 ? '<span class="look-current-badge">actual</span>' : ''}
+          </div>
+          <div class="look-date">${fmtAR(l.date)}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── Búsqueda principal ────────────────────────────────────
+async function searchUser() {
+  const name = document.getElementById('usernameInput').value.trim();
+  if (!name) return;
+  const resultDiv = document.getElementById('result');
+  const statusDiv = document.getElementById('proxy-status');
+  resultDiv.innerHTML = '<div class="loading">Conectando con Habbo.es...</div>';
+  statusDiv.innerHTML = '';
+
+  try {
+    const user = await fetchWithProxy(`users?name=${encodeURIComponent(name)}`);
+    if (user.error || !user.uniqueId) {
+      resultDiv.innerHTML = `<div class="error-box">Usuario "<strong>${name}</strong>" no encontrado. Verificá que el nombre sea correcto y que el perfil sea público.</div>`;
+      return;
+    }
+
+    statusDiv.innerHTML = `<div class="proxy-indicator">Conectado via ${activeProxy}</div>`;
+
+    const uid = user.uniqueId;
+    const history = recordSnapshot(uid, user.figureString, user.motto, user.name);
+
+    const isOnline = user.online;
+    const memberSince = user.memberSince
+      ? new Date(user.memberSince).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
+      : 'Desconocido';
+
+    // Último acceso: si está online mostramos tiempo transcurrido, si no la fecha/hora AR
+    const lastAccessRaw = user.lastWebAccess || user.lastAccessTime || null;
+    let lastLoginHtml;
+    if (isOnline) {
+      lastLoginHtml = `<span style="color:#2d7a3a;font-weight:600;">● Conectado ahora</span>`;
+    } else if (lastAccessRaw) {
+      const diff = Date.now() - new Date(lastAccessRaw).getTime();
+      const mins  = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days  = Math.floor(diff / 86400000);
+      let hace;
+      if (mins < 1)        hace = 'hace un momento';
+      else if (mins < 60)  hace = `hace ${mins} min`;
+      else if (hours < 24) hace = `hace ${hours} h`;
+      else if (days < 7)   hace = `hace ${days} día${days > 1 ? 's' : ''}`;
+      else                 hace = fmtAR(lastAccessRaw);
+      lastLoginHtml = `<span title="${fmtAR(lastAccessRaw)}">${hace}</span>`;
+    } else {
+      lastLoginHtml = `<span style="color:var(--color-faint)">No disponible</span>`;
+    }
+    const figureUrl = `https://www.habbo.es/habbo-imaging/avatarimage?figure=${user.figureString}&direction=2&head_direction=3&size=l&gesture=nor`;
+    const badgesHtml = (user.selectedBadges || []).map(b =>
+      `<img class="badge-img" src="https://images.habbo.com/c_images/album1584/${b.code}.gif" title="${b.name}" onerror="this.style.display='none'" />`
+    ).join('');
+
+    resultDiv.innerHTML = `
+      <div class="card">
+        <div class="user-header">
+          <img class="avatar-img" src="${figureUrl}" alt="Avatar" />
+          <div class="user-meta">
+            ${renderName(user.name, history.names)}
+            ${renderMotto(user.motto, history.mottos)}
+            <div class="tags">
+              <span class="tag ${isOnline ? 'tag-online' : 'tag-offline'}">${isOnline ? '● En línea' : '○ Desconectado'}</span>
+              ${user.habboGroupeMember ? '<span class="tag tag-staff">⭐ Staff</span>' : ''}
+            </div>
+          </div>
+        </div>
+
+        <hr class="divider" />
+        <div class="info-grid">
+          <div class="metric"><div class="metric-label">Miembro desde</div><div class="metric-value" style="font-size:13px;">${memberSince}</div></div>
+          <div class="metric"><div class="metric-label">Último acceso</div><div class="metric-value" style="font-size:13px;">${lastLoginHtml}</div></div>
+          <div class="metric"><div class="metric-label">Nivel de logros</div><div class="metric-value">${user.totalExperience || 0}</div></div>
+          <div class="metric"><div class="metric-label">Estrellas</div><div class="metric-value">${user.starGemCount || 0}</div></div>
+        </div>
+
+        ${badgesHtml ? `<hr class="divider" /><div class="section-title">Insignias seleccionadas</div><div class="badges-grid">${badgesHtml}</div>` : ''}
+
+        <hr class="divider" />
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('rooms', this)">Habitaciones <span class="count-badge" id="rooms-count">...</span></button>
+          <button class="tab" onclick="switchTab('friends', this)">Amigos <span class="count-badge" id="friends-count">...</span></button>
+          <button class="tab" onclick="switchTab('looks', this)">Previous looks <span class="count-badge">${history.looks.length}</span></button>
+        </div>
+        <div id="tab-rooms"   class="tab-content active"><div class="loading" style="padding:1rem;">Cargando...</div></div>
+        <div id="tab-friends" class="tab-content"><div class="loading" style="padding:1rem;">Cargando...</div></div>
+        <div id="tab-looks"   class="tab-content">${renderLooks(history.looks)}</div>
+
+        <hr class="divider" />
+        <a class="profile-link" href="https://www.habbo.es/es/profile/${user.name}" target="_blank">Ver perfil en Habbo.es →</a>
+      </div>`;
+
+    loadRooms(uid);
+    loadFriends(uid);
+  } catch (e) {
+    const isProxyFail = e.message.startsWith('PROXY_FAIL:');
+    const details = isProxyFail ? e.message.replace('PROXY_FAIL:', '') : e.message;
+    resultDiv.innerHTML = `<div class="error-box">
+      <strong>No se pudo conectar con la API de Habbo.es.</strong><br><br>
+      Todos los proxies CORS fallaron. Esto puede pasar por:<br>
+      · Un <strong>ad-blocker</strong> (uBlock, AdGuard, etc.) bloqueando los proxies<br>
+      · Los proxies están caídos temporalmente<br>
+      · Tu red bloquea dominios externos<br><br>
+      <strong>Soluciones:</strong><br>
+      · Desactivá el ad-blocker para esta página y volvé a intentarlo<br>
+      · Probá en modo incógnito (sin extensiones)<br>
+      · Probá desde otro navegador o red<br><br>
+      <details style="margin-top:4px;">
+        <summary style="cursor:pointer;font-size:11px;color:inherit;opacity:0.7;">Ver detalles técnicos</summary>
+        <pre style="font-size:10px;margin-top:6px;white-space:pre-wrap;opacity:0.7;">${details}</pre>
+      </details>
+    </div>`;
+  }
+}
+
+// ── Rooms ─────────────────────────────────────────────────
+async function loadRooms(uid) {
+  const tab = document.getElementById('tab-rooms');
+  const countEl = document.getElementById('rooms-count');
+  try {
+    const rooms = await fetchWithProxy(`users/${uid}/rooms`);
+    const list = Array.isArray(rooms) ? rooms : [];
+    countEl.textContent = list.length;
+    if (!list.length) { tab.innerHTML = `<div class="empty-state">Sin habitaciones públicas.</div>`; return; }
+    tab.innerHTML = list.slice(0, 10).map(r => `
+      <div class="room-item">
+        <div style="min-width:0;">
+          <div class="room-name">${r.name}</div>
+          ${r.description ? `<div class="room-desc">${r.description}</div>` : ''}
+        </div>
+        <span class="room-badge">${r.usersCount || 0} visitas</span>
+      </div>`).join('') +
+      (list.length > 10 ? `<div class="more-note">Y ${list.length - 10} habitaciones más...</div>` : '');
+  } catch(e) {
+    countEl.textContent = '?';
+    tab.innerHTML = `<div class="empty-state">No se pudieron cargar las habitaciones.</div>`;
+  }
+}
+
+// ── Friends ───────────────────────────────────────────────
+async function loadFriends(uid) {
+  const tab = document.getElementById('tab-friends');
+  const countEl = document.getElementById('friends-count');
+  try {
+    const friends = await fetchWithProxy(`users/${uid}/friends`);
+    const list = Array.isArray(friends) ? friends : [];
+    countEl.textContent = list.length;
+    if (!list.length) { tab.innerHTML = `<div class="empty-state">Lista de amigos privada o vacía.</div>`; return; }
+    tab.innerHTML = list.slice(0, 15).map(f => {
+      const fig = `https://www.habbo.es/habbo-imaging/avatarimage?figure=${f.figureString}&direction=2&head_direction=3&size=s&gesture=nor`;
+      return `
+        <div class="friend-item">
+          <img class="friend-avatar" src="${fig}" alt="${f.name}" onerror="this.style.opacity=0.3" />
+          <div style="flex:1;min-width:0;">
+            <div class="friend-name">${f.name}</div>
+            ${f.motto ? `<div class="friend-motto">"${f.motto}"</div>` : ''}
+          </div>
+          <span class="friend-status ${f.online ? 'online' : 'offline'}">
+            <span class="dot ${f.online ? 'dot-online' : 'dot-offline'}"></span>${f.online ? 'En línea' : 'Desconectado'}
+          </span>
+        </div>`;
+    }).join('') + (list.length > 15 ? `<div class="more-note">Y ${list.length - 15} amigos más...</div>` : '');
+  } catch(e) {
+    countEl.textContent = '?';
+    tab.innerHTML = `<div class="empty-state">Lista de amigos privada o no disponible.</div>`;
+  }
+}
+
+// ── Tabs ──────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ── Theme ─────────────────────────────────────────────────
+function toggleTheme() {
+  const isDark = document.body.classList.toggle('dark');
+  document.getElementById('themeBtn').textContent = isDark ? '☀️' : '🌙';
+  localStorage.setItem('habbo-theme', isDark ? 'dark' : 'light');
+}
+if (localStorage.getItem('habbo-theme') === 'dark') {
+  document.body.classList.add('dark');
+  document.getElementById('themeBtn').textContent = '☀️';
+}
+
+document.getElementById('usernameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') searchUser();
+});
+</script>
+</body>
+</html>
